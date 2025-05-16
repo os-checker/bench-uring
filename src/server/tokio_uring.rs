@@ -1,9 +1,10 @@
+use tokio_uring::net::{TcpListener, TcpStream};
+
 use super::utils::*;
 
-use tokio::net::{TcpListener, TcpStream};
-
 pub async fn main() -> crate::Result {
-    let listener = TcpListener::bind(ADDR).await?;
+    let addr = ADDR.parse()?;
+    let listener = TcpListener::bind(addr)?;
     println!("Listening on: {ADDR}");
 
     let (sender, mut receiver) = channel::<Message>(1024);
@@ -14,9 +15,9 @@ pub async fn main() -> crate::Result {
             request = listener.accept() => {
                 let (socket, socket_addr) = request?;
                 if let Some(stat) = task_stat.take() {
-                    tokio::spawn(stat);
+                    tokio_uring::spawn(stat);
                 }
-                tokio::spawn(response(socket, socket_addr));
+                tokio_uring::spawn(response(socket, socket_addr));
             }
             recv = receiver.recv() => {
                 if recv.is_none() { return Ok(()); }
@@ -25,12 +26,14 @@ pub async fn main() -> crate::Result {
     }
 }
 
-async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
+async fn response(socket: TcpStream, socket_addr: SocketAddr) {
     println!("new client: {socket_addr}");
     let mut buf = vec![0; SIZE];
+    let mut res;
 
     loop {
-        let n = match socket.read(&mut buf).await {
+        (res, buf) = socket.read(buf).await;
+        let n = match res {
             Ok(n) => n,
             Err(err) => {
                 eprintln!("{socket_addr}: {err}");
@@ -43,5 +46,8 @@ async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
             println!("close client: {socket_addr}");
             return;
         }
+
+        // clear
+        buf.clear();
     }
 }
