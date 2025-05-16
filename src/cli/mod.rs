@@ -1,7 +1,46 @@
 use bench_uring::Result;
 use std::{io, process::Command};
 
-pub fn examples() -> Result<Vec<String>> {
+pub struct Examples {
+    /// All example names.
+    pub all: Vec<String>,
+    /// Server example names.
+    pub servers: Vec<String>,
+    /// Client example names.
+    pub clients: Vec<String>,
+}
+
+impl Examples {
+    pub fn new() -> Result<Self> {
+        let all = examples()?;
+
+        let clients = all
+            .iter()
+            .filter(|name| name.starts_with("client_"))
+            .cloned()
+            .collect();
+        let servers = all
+            .iter()
+            .filter(|name| name.starts_with("server_"))
+            .cloned()
+            .collect();
+
+        Ok(Examples {
+            all,
+            clients,
+            servers,
+        })
+    }
+
+    pub fn build(&self) -> Result<()> {
+        for example in &self.all {
+            run("cargo", &["build", "--example", example], |_| Ok(()))?;
+        }
+        Ok(())
+    }
+}
+
+fn examples() -> Result<Vec<String>> {
     let mut v = Vec::new();
     for entry in std::fs::read_dir("examples")? {
         let entry = entry?;

@@ -2,11 +2,9 @@ mod cli;
 use cli::*;
 
 fn main() -> bench_uring::Result {
-    let examples = examples()?;
+    let examples = Examples::new()?;
 
-    for example in &examples {
-        run("cargo", &["build", "--example", example], |_| Ok(()))?;
-    }
+    examples.build()?;
 
     Ok(())
 }
