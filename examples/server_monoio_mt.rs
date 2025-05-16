@@ -1,13 +1,12 @@
-//! https://github.com/tokio-rs/tokio/blob/master/examples%2Fecho-tcp.rs
+use monoio::{
+    io::AsyncReadRent,
+    net::{TcpListener, TcpStream},
+};
 
-use tokio::io::AsyncReadExt;
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc::{Sender, channel};
-
-use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
+use tokio::sync::mpsc::{Sender, channel};
 
 const ADDR: &str = "127.0.0.1:2345";
 /// How many bytes to be transmitted.
@@ -15,27 +14,28 @@ const SIZE: usize = 16 * 1024;
 /// How long the server last.
 const DURATION: Duration = Duration::from_secs(10);
 
-type Result = std::result::Result<(), Box<dyn Error>>;
-
-#[tokio::main(flavor = "multi_thread", worker_threads = 8)]
-async fn main() -> Result {
-    let listener = TcpListener::bind(ADDR).await?;
+// With multi-thread function can not have a return value
+#[monoio::main(worker_threads = 8, enable_timer = true)]
+async fn main() {
+    let listener = TcpListener::bind(ADDR).unwrap();
     println!("Listening on: {ADDR}");
 
+    // If channel is commucated across threads, monoio's "sync" feature
+    // should be enabled.
     let (sender, mut receiver) = channel::<Message>(1024);
     let mut task_stat = Some(stat(sender));
 
     loop {
-        tokio::select! {
+        monoio::select! {
             request = listener.accept() => {
-                let (socket, socket_addr) = request?;
+                let (socket, socket_addr) = request.unwrap();
                 if let Some(stat) = task_stat.take() {
-                    tokio::spawn(stat);
+                    monoio::spawn(stat);
                 }
-                tokio::spawn(response(socket, socket_addr));
+                monoio::spawn(response(socket, socket_addr));
             }
             recv = receiver.recv() => {
-                if recv.is_none() { return Ok(()); }
+                if recv.is_none() { return; }
             }
         }
     }
@@ -44,9 +44,12 @@ async fn main() -> Result {
 async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
     println!("new client: {socket_addr}");
     let mut buf = vec![0; SIZE];
+    let mut res;
 
     loop {
-        let n = match socket.read(&mut buf).await {
+        (res, buf) = socket.read(buf).await;
+
+        let n = match res {
             Ok(n) => n,
             Err(err) => {
                 eprintln!("{socket_addr}: {err}");
@@ -59,6 +62,9 @@ async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
             println!("close client: {socket_addr}");
             return;
         }
+
+        // clear
+        buf.clear();
     }
 }
 
@@ -72,7 +78,7 @@ async fn stat(sender: Sender<Message>) {
     let start = Instant::now();
     let mut last = 0;
     let mut last_time = Instant::now();
-    let mut interval = tokio::time::interval(Duration::from_secs(2));
+    let mut interval = monoio::time::interval(Duration::from_secs(2));
 
     interval.tick().await;
 
