@@ -1,5 +1,5 @@
 use bench_uring::Result;
-use std::{io, process::Command};
+use std::process::Command;
 
 #[derive(Debug)]
 pub struct Examples {
@@ -80,27 +80,16 @@ fn examples() -> Result<Vec<String>> {
 }
 
 pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> Result<T> {
-    use io::{Read, Write};
+    println!("{exe:?} {args:?}");
 
-    let stdout = &mut io::stdout();
-    writeln!(stdout, "{exe:?} {args:?}")?;
+    let output = Command::new(exe).args(args).output()?;
 
-    let (mut reader, writer) = io::pipe()?;
-    let mut cmd = Command::new(exe)
-        .args(args)
-        .stdout(writer.try_clone()?)
-        .stderr(writer)
-        .spawn()?;
-
-    let mut buf = Vec::new();
-
-    _ = reader.read_to_end(&mut buf)?;
-    stdout.write_all(&buf)?;
-
-    if !cmd.wait()?.success() {
-        eprintln!("Failed to run {exe:?} {args:?}");
+    let stdout = String::from_utf8(output.stdout)?;
+    let stderr = String::from_utf8(output.stderr)?;
+    if !output.status.success() {
+        eprintln!("Failed to run {exe:?} {args:?}:\nstdout={stdout}\nstderr={stderr}");
     }
-    let stdout = String::from_utf8(buf)?;
+
     f(stdout)
 }
 
