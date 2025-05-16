@@ -1,6 +1,7 @@
 use bench_uring::Result;
 use std::{io, process::Command};
 
+#[derive(Debug)]
 pub struct Examples {
     /// All example names.
     pub all: Vec<String>,
@@ -36,6 +37,28 @@ impl Examples {
         for example in &self.all {
             run("cargo", &["build", "--example", example], |_| Ok(()))?;
         }
+        Ok(())
+    }
+
+    fn combinations(&self) -> Vec<[&str; 2]> {
+        let mut v = Vec::with_capacity(self.servers.len() * self.clients.len());
+        for server in &self.servers {
+            for client in &self.clients {
+                v.push([server.as_str(), client]);
+            }
+        }
+        v
+    }
+
+    pub fn bench(&self) -> Result<()> {
+        let v = self.combinations();
+        dbg!(&self, v.len(), &v);
+
+        for [server, client] in &v {
+            println!("{server} - {client} : start");
+            let _stdout = run_pair(server, client)?;
+        }
+
         Ok(())
     }
 }
@@ -77,4 +100,13 @@ pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> 
     }
     let stdout = String::from_utf8(buf)?;
     f(stdout)
+}
+
+fn run_pair(server: &str, client: &str) -> Result<String> {
+    std::thread::scope(|scope| {
+        let task_client = scope.spawn(|| run("cargo", &["run", "--example", client], |_| Ok(())));
+        let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], Ok));
+        task_client.join().unwrap()?;
+        task_server.join().unwrap()
+    })
 }
