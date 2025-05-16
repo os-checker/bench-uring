@@ -56,7 +56,9 @@ impl Examples {
 
         for [server, client] in &v {
             println!("{server} - {client} : start");
-            let _stdout = run_pair(server, client)?;
+            let stdout = run_pair(server, client)?;
+            let throughput = parse_output(&stdout).unwrap();
+            println!("{server} - {client} : {throughput:?}");
         }
 
         Ok(())
@@ -96,7 +98,7 @@ pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> 
     stdout.write_all(&buf)?;
 
     if !cmd.wait()?.success() {
-        return Err(format!("Failed to run {exe:?} {args:?}",).into());
+        eprintln!("Failed to run {exe:?} {args:?}");
     }
     let stdout = String::from_utf8(buf)?;
     f(stdout)
@@ -104,9 +106,28 @@ pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> 
 
 fn run_pair(server: &str, client: &str) -> Result<String> {
     std::thread::scope(|scope| {
-        let task_client = scope.spawn(|| run("cargo", &["run", "--example", client], |_| Ok(())));
         let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], Ok));
+        let task_client = scope.spawn(|| run("cargo", &["run", "--example", client], |_| Ok(())));
         task_client.join().unwrap()?;
         task_server.join().unwrap()
+    })
+}
+
+#[derive(Debug)]
+pub struct Throughput {
+    /// Connections per second.
+    pub conn: u32,
+    /// Duration in seconds.
+    pub secs: u32,
+}
+
+// Avg: 53807 (538073 / 10s)
+fn parse_output(s: &str) -> Option<Throughput> {
+    const PAT: &str = "Avg: ";
+    let last = &s[s.rfind(PAT)?..];
+    let (_, conn, secs) = lazy_regex::regex_captures!(r#"Avg: (\d+) \(\d+ / (\d+)s\)"#, last)?;
+    Some(Throughput {
+        conn: conn.parse().ok()?,
+        secs: secs.parse().ok()?,
     })
 }

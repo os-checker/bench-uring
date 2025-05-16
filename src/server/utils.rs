@@ -13,7 +13,7 @@ pub const ADDR: &str = "127.0.0.1:2345";
 /// How many bytes to be transmitted.
 pub const SIZE: usize = 16 * 1024;
 /// How long the server last.
-pub const DURATION: Duration = Duration::from_secs(10);
+pub const DURATION: Duration = Duration::from_secs(4);
 
 pub enum Message {
     StatDone,
