@@ -1,5 +1,5 @@
 use bench_uring::Result;
-use std::process::Command;
+use std::{io, process::Command};
 
 fn main() -> Result {
     let examples = [
@@ -14,25 +14,30 @@ fn main() -> Result {
     ];
 
     for example in examples {
-        run("cargo", &["build", "--example", example], |stdout| {
-            println!("{stdout}");
-            Ok(())
-        })?;
+        run("cargo", &["build", "--example", example], |_| Ok(()))?;
     }
 
     Ok(())
 }
 
 fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> Result<T> {
-    let output = Command::new(exe)
+    use io::{Read, Write};
+
+    let (mut reader, writer) = io::pipe()?;
+    let mut cmd = Command::new(exe)
         .args(args)
-        .stdout(std::io::stdout())
-        .stderr(std::io::stderr())
-        .output()?;
-    if !output.status.success() {
+        .stdout(writer.try_clone()?)
+        .stderr(writer)
+        .spawn()?;
+
+    let mut buf = Vec::new();
+
+    _ = reader.read_to_end(&mut buf)?;
+    io::stdout().write_all(&buf)?;
+
+    if !cmd.wait()?.success() {
         return Err(format!("Failed to run {exe:?} {args:?}",).into());
     }
-
-    let stdout = String::from_utf8(output.stdout)?;
+    let stdout = String::from_utf8(buf)?;
     f(stdout)
 }
