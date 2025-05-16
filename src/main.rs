@@ -2,26 +2,34 @@ use bench_uring::Result;
 use std::{io, process::Command};
 
 fn main() -> Result {
-    let examples = [
-        "client_tokio_mt",
-        "server_monoio_mt",
-        "server_tokio_mt",
-        "server_tokio_uring_mt",
-        "client_tokio_st",
-        "server_monoio_st",
-        "server_tokio_st",
-        "server_tokio_uring_st",
-    ];
+    let examples = examples()?;
 
-    for example in examples {
+    for example in &examples {
         run("cargo", &["build", "--example", example], |_| Ok(()))?;
     }
 
     Ok(())
 }
 
+fn examples() -> Result<Vec<String>> {
+    let mut v = Vec::new();
+    for entry in std::fs::read_dir("examples")? {
+        let entry = entry?;
+        let path = entry.path();
+        if entry.metadata()?.is_file() && path.extension().map(|ext| ext == "rs").unwrap_or(false) {
+            if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
+                v.push(file_stem.to_owned());
+            }
+        }
+    }
+    Ok(v)
+}
+
 fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> Result<T> {
     use io::{Read, Write};
+
+    let stdout = &mut io::stdout();
+    writeln!(stdout, "{exe:?} {args:?}")?;
 
     let (mut reader, writer) = io::pipe()?;
     let mut cmd = Command::new(exe)
@@ -33,7 +41,7 @@ fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> Resu
     let mut buf = Vec::new();
 
     _ = reader.read_to_end(&mut buf)?;
-    io::stdout().write_all(&buf)?;
+    stdout.write_all(&buf)?;
 
     if !cmd.wait()?.success() {
         return Err(format!("Failed to run {exe:?} {args:?}",).into());
