@@ -7,7 +7,15 @@ use tokio::task::JoinSet;
 pub async fn main() -> Result {
     let mut v_stream = Vec::with_capacity(LEN);
     for _ in 0..LEN {
-        v_stream.push(TcpStream::connect(ADDR).await?);
+        loop {
+            match TcpStream::connect(ADDR).await {
+                Ok(stream) => {
+                    v_stream.push(stream);
+                    break;
+                }
+                Err(err) => eprintln!("{err}"),
+            }
+        }
     }
 
     let mut set = JoinSet::new();
@@ -20,7 +28,9 @@ pub async fn main() -> Result {
                     Err(err) => {
                         if !matches!(
                             err.kind(),
-                            ErrorKind::BrokenPipe | ErrorKind::ConnectionReset
+                            ErrorKind::BrokenPipe
+                                | ErrorKind::ConnectionReset
+                                | ErrorKind::ConnectionRefused
                         ) {
                             eprintln!("Failed to write data: {err}");
                         }
