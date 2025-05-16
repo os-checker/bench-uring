@@ -5,11 +5,16 @@ pub type Result<T = (), E = Box<dyn std::error::Error + Send + Sync>> = std::res
 
 pub mod utils {
     pub use crate::Result;
+    pub use std::time::Duration;
+
+    /// All examples are run sequentially, so this addr is used in single server in each run.
     pub const ADDR: &str = "127.0.0.1:2345";
-    /// how many bytes to be transmitted.
+    /// How many bytes to be transmitted.
     pub const SIZE: usize = 16 * 1024;
-    /// real data to be transmitted.
+    /// Real data to be transmitted.
     pub const DATA: &[u8] = &[0; SIZE];
-    /// how many socket to connect to the server.
+    /// How many socket to connect to the server.
     pub const LEN: usize = 100;
+    /// How long the server last.
+    pub const DURATION: Duration = Duration::from_secs(4);
 }

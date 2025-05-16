@@ -1,19 +1,13 @@
 use std::sync::atomic::AtomicUsize;
 
-pub use std::net::SocketAddr;
-pub use std::sync::atomic::Ordering;
-pub use std::time::{Duration, Instant};
-
-pub use tokio::io::AsyncReadExt;
-pub use tokio::sync::mpsc::{Sender, channel};
+pub use crate::utils::*;
+pub use std::{net::SocketAddr, sync::atomic::Ordering, time::Instant};
+pub use tokio::{
+    io::AsyncReadExt,
+    sync::mpsc::{Sender, channel},
+};
 
 pub static COUNT: AtomicUsize = AtomicUsize::new(0);
-
-pub const ADDR: &str = "127.0.0.1:2345";
-/// How many bytes to be transmitted.
-pub const SIZE: usize = 16 * 1024;
-/// How long the server last.
-pub const DURATION: Duration = Duration::from_secs(4);
 
 pub enum Message {
     StatDone,
