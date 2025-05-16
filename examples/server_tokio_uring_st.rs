@@ -1,13 +1,11 @@
-//! https://github.com/bytedance/monoio/blob/master/examples%2Fecho.rs
-use monoio::{
-    io::AsyncReadRent,
-    net::{TcpListener, TcpStream},
-};
+//! https://github.com/tokio-rs/tokio-uring/blob/master/examples%2Ftcp_listener.rs
+use tokio::sync::mpsc::{Sender, channel};
+use tokio_uring::net::{TcpListener, TcpStream};
 
+use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
-use tokio::sync::mpsc::{Sender, channel};
 
 const ADDR: &str = "127.0.0.1:2345";
 /// How many bytes to be transmitted.
@@ -15,41 +13,41 @@ const SIZE: usize = 16 * 1024;
 /// How long the server last.
 const DURATION: Duration = Duration::from_secs(10);
 
-// With multi-thread function can not have a return value
-#[monoio::main(worker_threads = 8, enable_timer = true)]
-async fn main() {
-    let listener = TcpListener::bind(ADDR).unwrap();
-    println!("Listening on: {ADDR}");
+type Result = std::result::Result<(), Box<dyn Error>>;
 
-    // If channel is commucated across threads, monoio's "sync" feature
-    // should be enabled.
-    let (sender, mut receiver) = channel::<Message>(1024);
-    let mut task_stat = Some(stat(sender));
+fn main() -> Result {
+    tokio_uring::start(async {
+        let addr = ADDR.parse()?;
+        let listener = TcpListener::bind(addr)?;
+        println!("Listening on: {ADDR}");
 
-    loop {
-        monoio::select! {
-            request = listener.accept() => {
-                let (socket, socket_addr) = request.unwrap();
-                if let Some(stat) = task_stat.take() {
-                    monoio::spawn(stat);
+        let (sender, mut receiver) = channel::<Message>(1024);
+        let mut task_stat = Some(stat(sender));
+
+        loop {
+            tokio::select! {
+                request = listener.accept() => {
+                    let (socket, socket_addr) = request?;
+                    if let Some(stat) = task_stat.take() {
+                        tokio_uring::spawn(stat);
+                    }
+                    tokio_uring::spawn(response(socket, socket_addr));
                 }
-                monoio::spawn(response(socket, socket_addr));
-            }
-            recv = receiver.recv() => {
-                if recv.is_none() { return; }
+                recv = receiver.recv() => {
+                    if recv.is_none() { return Ok(()); }
+                }
             }
         }
-    }
+    })
 }
 
-async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
+async fn response(socket: TcpStream, socket_addr: SocketAddr) {
     println!("new client: {socket_addr}");
     let mut buf = vec![0; SIZE];
     let mut res;
 
     loop {
         (res, buf) = socket.read(buf).await;
-
         let n = match res {
             Ok(n) => n,
             Err(err) => {
@@ -79,7 +77,7 @@ async fn stat(sender: Sender<Message>) {
     let start = Instant::now();
     let mut last = 0;
     let mut last_time = Instant::now();
-    let mut interval = monoio::time::interval(Duration::from_secs(2));
+    let mut interval = tokio::time::interval(Duration::from_secs(2));
 
     interval.tick().await;
 
