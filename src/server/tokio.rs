@@ -1,10 +1,10 @@
-use crate::utils::*;
+use super::utils::*;
 
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{Sender, channel};
 
-pub async fn main() -> Result {
+pub async fn main() -> crate::Result {
     let listener = TcpListener::bind(ADDR).await?;
     println!("Listening on: {ADDR}");
 

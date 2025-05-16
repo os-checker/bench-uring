@@ -1,6 +1,4 @@
-use bench_uring::utils::Result;
-
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result {
-    bench_uring::tokio::main().await
+async fn main() -> bench_uring::Result {
+    bench_uring::server::tokio::main().await
 }

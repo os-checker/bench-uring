@@ -1,3 +1,3 @@
-pub mod tokio;
+pub mod server;
 
-pub mod utils;
+pub type Result = std::result::Result<(), Box<dyn std::error::Error>>;
