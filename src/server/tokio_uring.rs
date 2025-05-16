@@ -2,6 +2,10 @@ use tokio_uring::net::{TcpListener, TcpStream};
 
 use super::utils::*;
 
+pub fn start() -> crate::Result {
+    tokio_uring::start(main())
+}
+
 pub async fn main() -> crate::Result {
     let addr = ADDR.parse()?;
     let listener = TcpListener::bind(addr)?;
