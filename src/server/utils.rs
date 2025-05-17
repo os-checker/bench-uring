@@ -32,13 +32,13 @@ pub async fn stat(sender: Sender<Message>) {
         last_time = time;
 
         let amt = cnt as u64 / duration.as_secs();
-        println!("Req/sec: {amt} ({cnt} / {duration:.0?})");
+        debug!("Req/sec: {amt} ({cnt} / {duration:.0?})");
     }
 
     let duration = start.elapsed();
     let amt = last as u64 / duration.as_secs();
     println!("Avg: {amt} ({last} / {duration:.0?})");
     if let Err(err) = sender.send(Message::StatDone).await {
-        eprintln!("[stat] {err}");
+        error!(?err, "Failed to send a message.");
     }
 }

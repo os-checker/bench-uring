@@ -1,4 +1,11 @@
+#[macro_use]
+extern crate tracing;
+
+#[macro_use]
+extern crate eyre;
+
 pub mod client;
+pub mod logger;
 pub mod server;
 
 pub type Result<T = (), E = Box<dyn std::error::Error + Send + Sync>> = std::result::Result<T, E>;
@@ -6,6 +13,7 @@ pub type Result<T = (), E = Box<dyn std::error::Error + Send + Sync>> = std::res
 pub mod utils {
     pub use crate::Result;
     pub use std::time::Duration;
+    pub use tracing::Instrument;
 
     /// All examples are run sequentially, so this addr is used in single server in each run.
     pub const ADDR: &str = "127.0.0.1:2345";

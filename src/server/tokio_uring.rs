@@ -9,7 +9,7 @@ pub fn start() -> crate::Result {
 pub async fn main() -> crate::Result {
     let addr = ADDR.parse()?;
     let listener = TcpListener::bind(addr)?;
-    // println!("Listening on: {ADDR}");
+    debug!(ADDR, "Listening on");
 
     let (sender, mut receiver) = channel::<Message>(1024);
     let mut task_stat = Some(stat(sender));
@@ -21,7 +21,7 @@ pub async fn main() -> crate::Result {
                 if let Some(stat) = task_stat.take() {
                     tokio_uring::spawn(stat);
                 }
-                tokio_uring::spawn(response(socket, socket_addr));
+                tokio_uring::spawn(respond(socket, socket_addr));
             }
             recv = receiver.recv() => {
                 if recv.is_none() { return Ok(()); }
@@ -30,8 +30,8 @@ pub async fn main() -> crate::Result {
     }
 }
 
-async fn response(socket: TcpStream, socket_addr: SocketAddr) {
-    // println!("new client: {socket_addr}");
+async fn respond(socket: TcpStream, socket_addr: SocketAddr) {
+    let _span = error_span!("respond", %socket_addr).entered();
     let mut buf = vec![0; SIZE];
     let mut res;
 
@@ -40,14 +40,14 @@ async fn response(socket: TcpStream, socket_addr: SocketAddr) {
         let n = match res {
             Ok(n) => n,
             Err(err) => {
-                eprintln!("{socket_addr}: {err}");
+                error!(?err, "Failed to read socket.");
                 break;
             }
         };
 
         COUNT.fetch_add(1, Ordering::Relaxed);
         if n == 0 {
-            // println!("close client: {socket_addr}");
+            debug!("Close client");
             return;
         }
 

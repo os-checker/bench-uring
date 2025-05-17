@@ -7,7 +7,7 @@ use monoio::{
 
 pub async fn main() {
     let listener = TcpListener::bind(ADDR).unwrap();
-    // println!("Listening on: {ADDR}");
+    debug!(ADDR, "Listening on");
 
     // If channel is commucated across threads, monoio's "sync" feature
     // should be enabled.
@@ -21,7 +21,7 @@ pub async fn main() {
                 if let Some(stat) = task_stat.take() {
                     monoio::spawn(stat);
                 }
-                monoio::spawn(response(socket, socket_addr));
+                monoio::spawn(respond(socket, socket_addr));
             }
             recv = receiver.recv() => {
                 if recv.is_none() { return; }
@@ -30,31 +30,35 @@ pub async fn main() {
     }
 }
 
-async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
-    // println!("new client: {socket_addr}");
-    let mut buf = vec![0; SIZE];
-    let mut res;
+async fn respond(mut socket: TcpStream, socket_addr: SocketAddr) {
+    let span = error_span!("respond", %socket_addr);
+    async move {
+        let mut buf = vec![0; SIZE];
+        let mut res;
 
-    loop {
-        (res, buf) = socket.read(buf).await;
+        loop {
+            (res, buf) = socket.read(buf).await;
 
-        let n = match res {
-            Ok(n) => n,
-            Err(err) => {
-                eprintln!("{socket_addr}: {err}");
-                break;
+            let n = match res {
+                Ok(n) => n,
+                Err(err) => {
+                    error!(?err, "Failed to read socket.");
+                    break;
+                }
+            };
+
+            COUNT.fetch_add(1, Ordering::Relaxed);
+            if n == 0 {
+                debug!("Close client");
+                return;
             }
-        };
 
-        COUNT.fetch_add(1, Ordering::Relaxed);
-        if n == 0 {
-            // println!("close client: {socket_addr}");
-            return;
+            // clear
+            buf.clear();
         }
-
-        // clear
-        buf.clear();
     }
+    .instrument(span)
+    .await
 }
 
 async fn stat(sender: Sender<Message>) {
@@ -76,13 +80,13 @@ async fn stat(sender: Sender<Message>) {
         last_time = time;
 
         let amt = cnt as u64 / duration.as_secs();
-        println!("Req/sec: {amt} ({cnt} / {duration:.0?})");
+        debug!("Req/sec: {amt} ({cnt} / {duration:.0?})");
     }
 
     let duration = start.elapsed();
     let amt = last as u64 / duration.as_secs();
     println!("Avg: {amt} ({last} / {duration:.0?})");
     if let Err(err) = sender.send(Message::StatDone).await {
-        eprintln!("[stat] {err}");
+        error!(?err, "Failed to send a message.");
     }
 }
