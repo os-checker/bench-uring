@@ -1,6 +1,9 @@
 mod cli;
 use cli::*;
 
+#[macro_use]
+extern crate tracing;
+
 fn main() -> bench_uring::Result {
     bench_uring::logger::init();
 

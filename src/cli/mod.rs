@@ -1,4 +1,5 @@
 use bench_uring::Result;
+use eyre::ContextCompat;
 use std::process::Command;
 
 #[derive(Debug)]
@@ -53,15 +54,15 @@ impl Examples {
 
     pub fn bench(&self) -> Result<Vec<Throughput>> {
         let v = self.combinations();
-        dbg!(&self, v.len(), &v);
+        info!(combinations = v.len());
 
         let mut throughputs = Vec::with_capacity(v.len());
         for [server, client] in &v {
-            println!("{server} - {client} : start");
+            let _span = info_span!("bench", server, client).entered();
             let stdout = run_pair(server, client)?;
             let throughput = parse_output(&stdout, server, client)
-                .ok_or_else(|| format!("No throughput in:\n{stdout:?}"))?;
-            println!("{server} - {client} : {throughput:?}");
+                .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
+            info!(conn = throughput.conn, secs = throughput.secs);
             throughputs.push(throughput);
         }
 
@@ -85,14 +86,20 @@ fn examples() -> Result<Vec<String>> {
 }
 
 pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> Result<T> {
-    println!("{exe:?} {args:?}");
+    let cmd = || {
+        std::iter::once(exe)
+            .chain(args.iter().copied())
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    let _span = error_span!("run", cmd = cmd()).entered();
 
     let output = Command::new(exe).args(args).output()?;
 
     let stdout = String::from_utf8(output.stdout)?;
     let stderr = String::from_utf8(output.stderr)?;
     if !output.status.success() {
-        eprintln!("Failed to run {exe:?} {args:?}:\nstdout={stdout}\nstderr={stderr}");
+        error!(stdout, stderr, "Failed to run.");
     }
 
     f(stdout)

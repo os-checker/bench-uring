@@ -1,17 +1,15 @@
 #[macro_use]
 extern crate tracing;
 
-#[macro_use]
-extern crate eyre;
-
 pub mod client;
 pub mod logger;
 pub mod server;
 
-pub type Result<T = (), E = Box<dyn std::error::Error + Send + Sync>> = std::result::Result<T, E>;
+pub type Result<T = (), E = eyre::Report> = std::result::Result<T, E>;
 
 pub mod utils {
     pub use crate::Result;
+    pub use eyre::{Context, ContextCompat};
     pub use std::time::Duration;
     pub use tracing::Instrument;
 
