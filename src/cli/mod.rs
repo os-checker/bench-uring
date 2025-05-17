@@ -67,7 +67,8 @@ impl Examples {
             throughputs.push(throughput);
         }
 
-        throughputs.sort_unstable();
+        // Descending sort.
+        throughputs.sort_unstable_by(|a, b| b.cmp(a));
         Ok(throughputs)
     }
 }

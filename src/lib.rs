@@ -21,6 +21,8 @@ pub mod utils {
     pub const DATA: &[u8] = &[0; SIZE];
     /// How many socket to connect to the server.
     pub const LEN: usize = 100;
-    /// How long the server last.
+    /// How long the server lasts.
     pub const DURATION: Duration = Duration::from_secs(4);
+    /// How often a tick occurs to metric.
+    pub const INTERVAL: Duration = Duration::from_secs(2);
 }

@@ -17,7 +17,7 @@ pub async fn stat(sender: Sender<Message>) {
     let start = Instant::now();
     let mut last = 0;
     let mut last_time = Instant::now();
-    let mut interval = tokio::time::interval(Duration::from_secs(2));
+    let mut interval = tokio::time::interval(INTERVAL);
 
     interval.tick().await;
 
