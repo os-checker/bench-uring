@@ -1,5 +1,6 @@
 use bench_uring::Result;
 use eyre::ContextCompat;
+use serde::Serialize;
 use std::process::Command;
 
 #[derive(Debug)]
@@ -114,7 +115,7 @@ fn run_pair(server: &str, client: &str) -> Result<String> {
     })
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Throughput {
     /// Connections per second.
     pub conn: u32,
@@ -137,4 +138,16 @@ fn parse_output(s: &str, server: &str, client: &str) -> Option<Throughput> {
         server: server.to_owned(),
         client: client.to_owned(),
     })
+}
+
+pub fn write_csv<S: Serialize>(path: &str, data: &[S]) -> Result {
+    let _span = error_span!("write_csv", path).entered();
+    info!(data.len = data.len());
+
+    let mut writer = csv::Writer::from_path(path)?;
+    for row in data {
+        writer.serialize(row)?;
+    }
+
+    Ok(())
 }

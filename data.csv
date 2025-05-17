@@ -1,0 +1,13 @@
+conn,secs,server,client
+18260,4,server_tokio_uring_st,client_tokio_mt
+18347,4,server_tokio_uring_st,client_tokio_st
+20227,4,server_monoio_st,client_tokio_st
+22446,4,server_monoio_st,client_tokio_mt
+25017,4,server_tokio_uring_mt,client_tokio_st
+27664,4,server_monoio_mt,client_tokio_mt
+27768,4,server_tokio_uring_mt,client_tokio_mt
+28876,4,server_tokio_mt,client_tokio_st
+29071,4,server_monoio_mt,client_tokio_st
+30255,4,server_tokio_mt,client_tokio_mt
+31148,4,server_tokio_st,client_tokio_st
+40924,4,server_tokio_st,client_tokio_mt

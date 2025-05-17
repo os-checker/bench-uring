@@ -11,7 +11,8 @@ fn main() -> bench_uring::Result {
 
     examples.build()?;
     let throughputs = examples.bench()?;
-    dbg!(throughputs);
+    dbg!(&throughputs);
+    write_csv("data.csv", &throughputs)?;
 
     Ok(())
 }
