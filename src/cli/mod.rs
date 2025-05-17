@@ -65,14 +65,18 @@ impl Examples {
         let v = self.combinations();
         info!(combinations = v.len());
 
+        let env_fns = gen_env_fns();
+
         let mut throughputs = Vec::with_capacity(v.len());
         for [server, client] in &v {
             let _span = info_span!("bench", server, client).entered();
-            let (stdout, config) = run_pair(server, client)?;
-            let throughput = parse_output(&stdout, server, client, config)
-                .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
-            info!(conn = throughput.conn, secs = throughput.secs);
-            throughputs.push(throughput);
+            for &env_fn in &env_fns {
+                let (stdout, config) = run_pair(server, client, env_fn)?;
+                let throughput = parse_output(&stdout, server, client, config)
+                    .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
+                info!(conn = throughput.conn, secs = throughput.secs);
+                throughputs.push(throughput);
+            }
         }
 
         // Descending sort.
@@ -126,11 +130,24 @@ pub fn run<T>(
     Ok((ret, config))
 }
 
-fn run_pair(server: &str, client: &str) -> Result<(String, Config)> {
+type EnvFn = fn(&mut EnvConfig);
+
+fn gen_env_fns() -> Vec<fn(&mut EnvConfig)> {
+    [
+        |_: &mut EnvConfig| (),
+        |env: &mut EnvConfig| _ = env.set_duration(4),
+        |env: &mut EnvConfig| _ = env.set_socket_len(200),
+        |env: &mut EnvConfig| _ = env.set_size(1024 * 1024), // 1MB
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn run_pair(server: &str, client: &str, env: EnvFn) -> Result<(String, Config)> {
     std::thread::scope(|scope| {
-        let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], |_| (), Ok));
+        let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], env, Ok));
         let task_client =
-            scope.spawn(|| run("cargo", &["run", "--example", client], |_| (), |_| Ok(())));
+            scope.spawn(|| run("cargo", &["run", "--example", client], env, |_| Ok(())));
         task_client.join().unwrap()?;
         task_server.join().unwrap()
     })
@@ -146,6 +163,9 @@ pub struct Throughput {
     pub server: String,
     /// Client example name.
     pub client: String,
+    // If single-threaded? False means multi-threaded.
+    pub server_st: bool,
+    pub client_st: bool,
     // Config for this bench.
     pub size: usize,
     pub socket_len: usize,
@@ -163,6 +183,8 @@ fn parse_output(s: &str, server: &str, client: &str, config: Config) -> Option<T
         secs: secs.parse().ok()?,
         server: server.to_owned(),
         client: client.to_owned(),
+        server_st: server.ends_with("st"),
+        client_st: client.ends_with("st"),
         size: config.size,
         socket_len: config.socket_len,
         duration: config.duration.as_secs() as u32,
