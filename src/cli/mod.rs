@@ -1,4 +1,7 @@
-use bench_uring::{Result, utils::EnvConfig};
+use bench_uring::{
+    Result,
+    utils::{Config, EnvConfig},
+};
 use eyre::ContextCompat;
 use serde::Serialize;
 use std::process::Command;
@@ -65,8 +68,8 @@ impl Examples {
         let mut throughputs = Vec::with_capacity(v.len());
         for [server, client] in &v {
             let _span = info_span!("bench", server, client).entered();
-            let stdout = run_pair(server, client)?;
-            let throughput = parse_output(&stdout, server, client)
+            let (stdout, config) = run_pair(server, client)?;
+            let throughput = parse_output(&stdout, server, client, config)
                 .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
             info!(conn = throughput.conn, secs = throughput.secs);
             throughputs.push(throughput);
@@ -95,9 +98,9 @@ fn get_examples() -> Result<Vec<String>> {
 pub fn run<T>(
     exe: &str,
     args: &[&str],
-    env: impl for<'a> FnOnce(EnvConfig<'a>),
+    env: impl for<'a> FnOnce(&mut EnvConfig<'a>),
     f: impl FnOnce(String) -> Result<T>,
-) -> Result<T> {
+) -> Result<(T, Config)> {
     let cmd = || {
         std::iter::once(exe)
             .chain(args.iter().copied())
@@ -108,7 +111,9 @@ pub fn run<T>(
 
     let mut cmd = Command::new(exe);
     cmd.args(args);
-    env(EnvConfig::new(&mut cmd));
+    let mut env_config = EnvConfig::new(&mut cmd);
+    env(&mut env_config);
+    let config = env_config.finish();
     let output = cmd.output()?;
 
     let stdout = String::from_utf8(output.stdout)?;
@@ -117,10 +122,11 @@ pub fn run<T>(
         error!(stdout, stderr, "Failed to run.");
     }
 
-    f(stdout)
+    let ret = f(stdout)?;
+    Ok((ret, config))
 }
 
-fn run_pair(server: &str, client: &str) -> Result<String> {
+fn run_pair(server: &str, client: &str) -> Result<(String, Config)> {
     std::thread::scope(|scope| {
         let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], |_| (), Ok));
         let task_client =
@@ -140,10 +146,15 @@ pub struct Throughput {
     pub server: String,
     /// Client example name.
     pub client: String,
+    // Config for this bench.
+    pub size: usize,
+    pub socket_len: usize,
+    pub duration: u32,
+    pub interval: u32,
 }
 
 // Avg: 53807 (538073 / 10s)
-fn parse_output(s: &str, server: &str, client: &str) -> Option<Throughput> {
+fn parse_output(s: &str, server: &str, client: &str, config: Config) -> Option<Throughput> {
     const PAT: &str = "Avg: ";
     let last = &s[s.rfind(PAT)?..];
     let (_, conn, secs) = lazy_regex::regex_captures!(r#"Avg: (\d+) \(\d+ / (\d+)s\)"#, last)?;
@@ -152,6 +163,10 @@ fn parse_output(s: &str, server: &str, client: &str) -> Option<Throughput> {
         secs: secs.parse().ok()?,
         server: server.to_owned(),
         client: client.to_owned(),
+        size: config.size,
+        socket_len: config.socket_len,
+        duration: config.duration.as_secs() as u32,
+        interval: config.interval.as_secs() as u32,
     })
 }
 

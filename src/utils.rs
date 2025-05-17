@@ -77,28 +77,9 @@ impl EnvConfig<'_> {
 // ******** Configs Static Used in Server and Client ********
 
 use std::{process::Command, sync::LazyLock};
-pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
-    use std::env::var;
-    Config {
-        addr: var(ENV_ADDR).unwrap_or_else(|_| ADDR.to_owned()),
-        size: var(ENV_SIZE)
-            .map(|size| size.parse().unwrap())
-            .unwrap_or(SIZE),
-        data: DATA,
-        socket_len: var(ENV_SOCKET_LEN)
-            .map(|size| size.parse().unwrap())
-            .unwrap_or(SOCKET_LEN),
-        duration: var(ENV_DURATION)
-            .map(|dur| Duration::from_secs(dur.parse::<u64>().unwrap()))
-            .unwrap_or(DURATION),
-        interval: var(ENV_INTERVAL)
-            .map(|dur| Duration::from_secs(dur.parse::<u64>().unwrap()))
-            .unwrap_or(INTERVAL),
-    }
-});
+pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::default);
 
 // Debug data on default Config is empty slice.
-#[derive(Default, Debug)]
 pub struct Config {
     /// All examples are run sequentially, so this addr is used in single server in each run.
     pub addr: String,
@@ -112,4 +93,26 @@ pub struct Config {
     pub duration: Duration,
     /// How often a tick occurs to metric.
     pub interval: Duration,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        use std::env::var;
+        Config {
+            addr: var(ENV_ADDR).unwrap_or_else(|_| ADDR.to_owned()),
+            size: var(ENV_SIZE)
+                .map(|size| size.parse().unwrap())
+                .unwrap_or(SIZE),
+            data: DATA,
+            socket_len: var(ENV_SOCKET_LEN)
+                .map(|size| size.parse().unwrap())
+                .unwrap_or(SOCKET_LEN),
+            duration: var(ENV_DURATION)
+                .map(|dur| Duration::from_secs(dur.parse::<u64>().unwrap()))
+                .unwrap_or(DURATION),
+            interval: var(ENV_INTERVAL)
+                .map(|dur| Duration::from_secs(dur.parse::<u64>().unwrap()))
+                .unwrap_or(INTERVAL),
+        }
+    }
 }
