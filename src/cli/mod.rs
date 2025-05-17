@@ -63,25 +63,57 @@ impl Examples {
 
     pub fn bench(&self) -> Result<Vec<Throughput>> {
         let v = self.combinations();
-        info!(combinations = v.len());
-
         let env_fns = gen_env_fns();
+        let combinations = v.len();
+        let benches_len = combinations * env_fns.len();
+        info!(combinations, benches_len);
 
-        let mut throughputs = Vec::with_capacity(v.len());
+        let mut benches = Vec::with_capacity(benches_len);
         for [server, client] in &v {
-            let _span = info_span!("bench", server, client).entered();
             for &env_fn in &env_fns {
-                let (stdout, config) = run_pair(server, client, env_fn)?;
-                let throughput = parse_output(&stdout, server, client, config)
-                    .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
-                info!(conn = throughput.conn, secs = throughput.secs);
-                throughputs.push(throughput);
+                benches.push(Bench {
+                    server,
+                    client,
+                    env_fn,
+                });
             }
+        }
+
+        // shuffle
+        use rand::seq::SliceRandom;
+        benches.shuffle(&mut rand::rng());
+
+        let mut throughputs = Vec::with_capacity(benches_len);
+        for bench in benches {
+            bench.run(&mut throughputs)?;
         }
 
         // Descending sort.
         throughputs.sort_unstable_by(|a, b| b.cmp(a));
         Ok(throughputs)
+    }
+}
+
+struct Bench<'a> {
+    server: &'a str,
+    client: &'a str,
+    env_fn: EnvFn,
+}
+
+impl Bench<'_> {
+    fn run(self, throughputs: &mut Vec<Throughput>) -> Result {
+        let Self {
+            server,
+            client,
+            env_fn,
+        } = self;
+        let _span = info_span!("bench", server, client).entered();
+        let (stdout, config) = run_pair(server, client, env_fn)?;
+        let throughput = parse_output(&stdout, server, client, config)
+            .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
+        info!(conn = throughput.conn, secs = throughput.secs);
+        throughputs.push(throughput);
+        Ok(())
     }
 }
 
