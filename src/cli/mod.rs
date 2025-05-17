@@ -79,13 +79,22 @@ impl Examples {
             }
         }
 
+        // Repeat each bench.
+        let repeat = 1;
+        let mut repeated_benches = Vec::with_capacity(benches.len() * repeat);
+        for _ in 0..repeat {
+            repeated_benches.extend(benches.iter().copied());
+        }
+        drop(benches);
+
         // shuffle
         use rand::seq::SliceRandom;
-        benches.shuffle(&mut rand::rng());
+        repeated_benches.shuffle(&mut rand::rng());
 
-        let mut throughputs = Vec::with_capacity(benches_len);
-        for bench in benches {
-            bench.run(&mut throughputs)?;
+        let len = repeated_benches.len();
+        let mut throughputs = Vec::with_capacity(len);
+        for (idx, bench) in repeated_benches.iter().enumerate() {
+            bench.run(&mut throughputs, idx, len)?;
         }
 
         // Descending sort.
@@ -94,6 +103,7 @@ impl Examples {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Bench<'a> {
     server: &'a str,
     client: &'a str,
@@ -101,13 +111,13 @@ struct Bench<'a> {
 }
 
 impl Bench<'_> {
-    fn run(self, throughputs: &mut Vec<Throughput>) -> Result {
+    fn run(self, throughputs: &mut Vec<Throughput>, idx: usize, len: usize) -> Result {
         let Self {
             server,
             client,
             env_fn,
         } = self;
-        let _span = info_span!("bench", server, client).entered();
+        let _span = info_span!("bench", idx, len, server, client).entered();
         let (stdout, config) = run_pair(server, client, env_fn)?;
         let throughput = parse_output(&stdout, server, client, config)
             .with_context(|| format!("No throughput in:\n{stdout:?}"))?;
@@ -187,6 +197,8 @@ fn run_pair(server: &str, client: &str, env: EnvFn) -> Result<(String, Config)> 
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Throughput {
+    /// MB per seconds
+    pub mbps: usize,
     /// Connections per second.
     pub conn: u32,
     /// Duration in seconds.
@@ -210,8 +222,10 @@ fn parse_output(s: &str, server: &str, client: &str, config: Config) -> Option<T
     const PAT: &str = "Avg: ";
     let last = &s[s.rfind(PAT)?..];
     let (_, conn, secs) = lazy_regex::regex_captures!(r#"Avg: (\d+) \(\d+ / (\d+)s\)"#, last)?;
+    let conn = conn.parse::<usize>().ok()?;
     Some(Throughput {
-        conn: conn.parse().ok()?,
+        mbps: conn * (config.size / 1024) / 1024,
+        conn: conn as u32,
         secs: secs.parse().ok()?,
         server: server.to_owned(),
         client: client.to_owned(),
