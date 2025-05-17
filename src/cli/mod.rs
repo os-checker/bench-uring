@@ -1,4 +1,4 @@
-use bench_uring::Result;
+use bench_uring::{Result, utils::EnvConfig};
 use eyre::ContextCompat;
 use serde::Serialize;
 use std::process::Command;
@@ -15,7 +15,7 @@ pub struct Examples {
 
 impl Examples {
     pub fn new() -> Result<Self> {
-        let mut all = examples()?;
+        let mut all = get_examples()?;
         all.sort_unstable();
 
         let clients = all
@@ -38,7 +38,12 @@ impl Examples {
 
     pub fn build(&self) -> Result<()> {
         for example in &self.all {
-            run("cargo", &["build", "--example", example], |_| Ok(()))?;
+            run(
+                "cargo",
+                &["build", "--example", example],
+                |_| (),
+                |_| Ok(()),
+            )?;
         }
         Ok(())
     }
@@ -73,7 +78,7 @@ impl Examples {
     }
 }
 
-fn examples() -> Result<Vec<String>> {
+fn get_examples() -> Result<Vec<String>> {
     let mut v = Vec::new();
     for entry in std::fs::read_dir("examples")? {
         let entry = entry?;
@@ -87,7 +92,12 @@ fn examples() -> Result<Vec<String>> {
     Ok(v)
 }
 
-pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> Result<T> {
+pub fn run<T>(
+    exe: &str,
+    args: &[&str],
+    env: impl for<'a> FnOnce(EnvConfig<'a>),
+    f: impl FnOnce(String) -> Result<T>,
+) -> Result<T> {
     let cmd = || {
         std::iter::once(exe)
             .chain(args.iter().copied())
@@ -96,7 +106,10 @@ pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> 
     };
     let _span = error_span!("run", cmd = cmd()).entered();
 
-    let output = Command::new(exe).args(args).output()?;
+    let mut cmd = Command::new(exe);
+    cmd.args(args);
+    env(EnvConfig::new(&mut cmd));
+    let output = cmd.output()?;
 
     let stdout = String::from_utf8(output.stdout)?;
     let stderr = String::from_utf8(output.stderr)?;
@@ -109,8 +122,9 @@ pub fn run<T>(exe: &str, args: &[&str], f: impl FnOnce(String) -> Result<T>) -> 
 
 fn run_pair(server: &str, client: &str) -> Result<String> {
     std::thread::scope(|scope| {
-        let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], Ok));
-        let task_client = scope.spawn(|| run("cargo", &["run", "--example", client], |_| Ok(())));
+        let task_server = scope.spawn(|| run("cargo", &["run", "--example", server], |_| (), Ok));
+        let task_client =
+            scope.spawn(|| run("cargo", &["run", "--example", client], |_| (), |_| Ok(())));
         task_client.join().unwrap()?;
         task_server.join().unwrap()
     })
