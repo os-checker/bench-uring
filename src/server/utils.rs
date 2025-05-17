@@ -17,11 +17,11 @@ pub async fn stat(sender: Sender<Message>) {
     let start = Instant::now();
     let mut last = 0;
     let mut last_time = Instant::now();
-    let mut interval = tokio::time::interval(INTERVAL);
+    let mut interval = tokio::time::interval(CONFIG.interval);
 
     interval.tick().await;
 
-    while start.elapsed() < DURATION {
+    while start.elapsed() < CONFIG.duration {
         let time = interval.tick().await.into_std();
 
         let val = COUNT.load(Ordering::Relaxed);

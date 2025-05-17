@@ -6,8 +6,9 @@ use monoio::{
 };
 
 pub async fn main() {
-    let listener = TcpListener::bind(ADDR).unwrap();
-    debug!(ADDR, "Listening on");
+    let addr = &*CONFIG.addr;
+    let listener = TcpListener::bind(addr).unwrap();
+    debug!(addr, "Listening on");
 
     // If channel is commucated across threads, monoio's "sync" feature
     // should be enabled.
@@ -33,7 +34,7 @@ pub async fn main() {
 async fn respond(mut socket: TcpStream, socket_addr: SocketAddr) {
     let span = error_span!("respond", %socket_addr);
     async move {
-        let mut buf = vec![0; SIZE];
+        let mut buf = vec![0; CONFIG.size];
         let mut res;
 
         loop {
@@ -65,11 +66,11 @@ async fn stat(sender: Sender<Message>) {
     let start = Instant::now();
     let mut last = 0;
     let mut last_time = Instant::now();
-    let mut interval = monoio::time::interval(INTERVAL);
+    let mut interval = monoio::time::interval(CONFIG.interval);
 
     interval.tick().await;
 
-    while start.elapsed() < DURATION {
+    while start.elapsed() < CONFIG.duration {
         let time = interval.tick().await.into_std();
 
         let val = COUNT.load(Ordering::Relaxed);

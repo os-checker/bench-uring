@@ -5,10 +5,11 @@ use tokio::net::TcpStream;
 use tokio::task::JoinSet;
 
 pub async fn main() -> Result {
-    let mut v_stream = Vec::with_capacity(LEN);
-    for _ in 0..LEN {
+    let socket_len = CONFIG.socket_len;
+    let mut v_stream = Vec::with_capacity(socket_len);
+    for _ in 0..socket_len {
         loop {
-            match TcpStream::connect(ADDR).await {
+            match TcpStream::connect(&*CONFIG.addr).await {
                 Ok(stream) => {
                     v_stream.push(stream);
                     break;
@@ -22,7 +23,7 @@ pub async fn main() -> Result {
     for mut stream in v_stream {
         set.spawn(async move {
             loop {
-                let result = stream.write_all(DATA).await;
+                let result = stream.write_all(CONFIG.data).await;
                 match result {
                     Ok(()) => (),
                     Err(err) => {

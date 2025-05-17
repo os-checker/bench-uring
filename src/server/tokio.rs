@@ -2,8 +2,9 @@ use super::utils::*;
 use tokio::net::{TcpListener, TcpStream};
 
 pub async fn main() -> crate::Result {
-    let listener = TcpListener::bind(ADDR).await?;
-    debug!(ADDR, "Listening on");
+    let addr = &*CONFIG.addr;
+    let listener = TcpListener::bind(addr).await?;
+    debug!(addr, "Listening on");
 
     let (sender, mut receiver) = channel::<Message>(1024);
     let mut task_stat = Some(stat(sender));
@@ -27,7 +28,7 @@ pub async fn main() -> crate::Result {
 async fn respond(mut socket: TcpStream, socket_addr: SocketAddr) {
     let span = error_span!("respond", %socket_addr);
     async move {
-        let mut buf = vec![0; SIZE];
+        let mut buf = vec![0; CONFIG.size];
 
         loop {
             let n = match socket.read(&mut buf).await {

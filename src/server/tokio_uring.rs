@@ -7,9 +7,9 @@ pub fn start() -> crate::Result {
 }
 
 pub async fn main() -> crate::Result {
-    let addr = ADDR.parse()?;
+    let addr = CONFIG.addr.parse()?;
     let listener = TcpListener::bind(addr)?;
-    debug!(ADDR, "Listening on");
+    debug!(addr = CONFIG.addr, "Listening on");
 
     let (sender, mut receiver) = channel::<Message>(1024);
     let mut task_stat = Some(stat(sender));
@@ -32,7 +32,7 @@ pub async fn main() -> crate::Result {
 
 async fn respond(socket: TcpStream, socket_addr: SocketAddr) {
     let _span = error_span!("respond", %socket_addr).entered();
-    let mut buf = vec![0; SIZE];
+    let mut buf = vec![0; CONFIG.size];
     let mut res;
 
     loop {
