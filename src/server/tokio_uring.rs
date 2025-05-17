@@ -9,7 +9,7 @@ pub fn start() -> crate::Result {
 pub async fn main() -> crate::Result {
     let addr = ADDR.parse()?;
     let listener = TcpListener::bind(addr)?;
-    println!("Listening on: {ADDR}");
+    // println!("Listening on: {ADDR}");
 
     let (sender, mut receiver) = channel::<Message>(1024);
     let mut task_stat = Some(stat(sender));
@@ -31,7 +31,7 @@ pub async fn main() -> crate::Result {
 }
 
 async fn response(socket: TcpStream, socket_addr: SocketAddr) {
-    println!("new client: {socket_addr}");
+    // println!("new client: {socket_addr}");
     let mut buf = vec![0; SIZE];
     let mut res;
 
@@ -47,7 +47,7 @@ async fn response(socket: TcpStream, socket_addr: SocketAddr) {
 
         COUNT.fetch_add(1, Ordering::Relaxed);
         if n == 0 {
-            println!("close client: {socket_addr}");
+            // println!("close client: {socket_addr}");
             return;
         }
 

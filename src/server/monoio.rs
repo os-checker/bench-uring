@@ -7,7 +7,7 @@ use monoio::{
 
 pub async fn main() {
     let listener = TcpListener::bind(ADDR).unwrap();
-    println!("Listening on: {ADDR}");
+    // println!("Listening on: {ADDR}");
 
     // If channel is commucated across threads, monoio's "sync" feature
     // should be enabled.
@@ -31,7 +31,7 @@ pub async fn main() {
 }
 
 async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
-    println!("new client: {socket_addr}");
+    // println!("new client: {socket_addr}");
     let mut buf = vec![0; SIZE];
     let mut res;
 
@@ -48,7 +48,7 @@ async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
 
         COUNT.fetch_add(1, Ordering::Relaxed);
         if n == 0 {
-            println!("close client: {socket_addr}");
+            // println!("close client: {socket_addr}");
             return;
         }
 

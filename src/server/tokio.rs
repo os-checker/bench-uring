@@ -4,7 +4,7 @@ use tokio::net::{TcpListener, TcpStream};
 
 pub async fn main() -> crate::Result {
     let listener = TcpListener::bind(ADDR).await?;
-    println!("Listening on: {ADDR}");
+    // println!("Listening on: {ADDR}");
 
     let (sender, mut receiver) = channel::<Message>(1024);
     let mut task_stat = Some(stat(sender));
@@ -26,7 +26,7 @@ pub async fn main() -> crate::Result {
 }
 
 async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
-    println!("new client: {socket_addr}");
+    // println!("new client: {socket_addr}");
     let mut buf = vec![0; SIZE];
 
     loop {
@@ -40,7 +40,7 @@ async fn response(mut socket: TcpStream, socket_addr: SocketAddr) {
 
         COUNT.fetch_add(1, Ordering::Relaxed);
         if n == 0 {
-            println!("close client: {socket_addr}");
+            // println!("close client: {socket_addr}");
             return;
         }
     }
