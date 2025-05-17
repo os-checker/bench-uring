@@ -13,7 +13,8 @@ pub struct Examples {
 
 impl Examples {
     pub fn new() -> Result<Self> {
-        let all = examples()?;
+        let mut all = examples()?;
+        all.sort_unstable();
 
         let clients = all
             .iter()
@@ -50,18 +51,22 @@ impl Examples {
         v
     }
 
-    pub fn bench(&self) -> Result<()> {
+    pub fn bench(&self) -> Result<Vec<Throughput>> {
         let v = self.combinations();
         dbg!(&self, v.len(), &v);
 
+        let mut throughputs = Vec::with_capacity(v.len());
         for [server, client] in &v {
             println!("{server} - {client} : start");
             let stdout = run_pair(server, client)?;
-            let throughput = parse_output(&stdout).unwrap();
+            let throughput = parse_output(&stdout, server, client)
+                .ok_or_else(|| format!("No throughput in:\n{stdout:?}"))?;
             println!("{server} - {client} : {throughput:?}");
+            throughputs.push(throughput);
         }
 
-        Ok(())
+        throughputs.sort_unstable();
+        Ok(throughputs)
     }
 }
 
@@ -102,21 +107,27 @@ fn run_pair(server: &str, client: &str) -> Result<String> {
     })
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Throughput {
     /// Connections per second.
     pub conn: u32,
     /// Duration in seconds.
     pub secs: u32,
+    /// Server example name.
+    pub server: String,
+    /// Client example name.
+    pub client: String,
 }
 
 // Avg: 53807 (538073 / 10s)
-fn parse_output(s: &str) -> Option<Throughput> {
+fn parse_output(s: &str, server: &str, client: &str) -> Option<Throughput> {
     const PAT: &str = "Avg: ";
     let last = &s[s.rfind(PAT)?..];
     let (_, conn, secs) = lazy_regex::regex_captures!(r#"Avg: (\d+) \(\d+ / (\d+)s\)"#, last)?;
     Some(Throughput {
         conn: conn.parse().ok()?,
         secs: secs.parse().ok()?,
+        server: server.to_owned(),
+        client: client.to_owned(),
     })
 }
