@@ -1,0 +1,175 @@
+---
+title: "io-uring 异步运行时基准测试"
+format: revealjs
+editor: visual
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+# 自动应用中文字体
+showtext::showtext_auto()
+
+# 设置默认主题
+font_ratio = 1
+theme_set(
+  theme_minimal() +
+  theme(
+    text = element_text(size = 16*font_ratio),  # 设置全局字体大小为 16
+    plot.title = element_text(size = 20*font_ratio, face = "bold"),
+    axis.title = element_text(size = 16*font_ratio),
+    axis.text = element_text(size = 14*font_ratio),
+    legend.title = element_text(size = 16*font_ratio),
+    legend.text = element_text(size = 14*font_ratio)
+  )
+)
+```
+
+```{r}
+# Prepare
+data <- read.csv("data.csv")
+data$server_st <- data$server_st == "true"
+data$client_st <- data$client_st == "true"
+```
+
+## Problem 1: async-uring 基准测试代码不完整
+
+r58Playz/async-uring#1：
+
+[The bench.sh is incomplete on other runtimes](https://github.com/r58Playz/async-uring/issues/1)
+
+## Problem 2: async-uring 在 WSL 上编译错误
+
+``` bash
+$ bash bench.sh echo 127.0.0.1:2345
+    Finished `release` profile [optimized + debuginfo] target(s) in 0.23s
+     Running `target/release/examples/echo '127.0.0.1:2345'`
+Error: Io(Os { code: 22, kind: InvalidInput, message: "Invalid argument" })
+```
+
+通过运行 `uname -a` 命令，我发现 Windows WSL2 的 ubuntu 24 的内核版本为 5.15，不支持 5.18 之后的 [`setup_submit_all`](https://docs.rs/io-uring/0.7.6/io_uring/struct.Builder.html#method.setup_submit_all) 调用。
+
+## Problem 3: async-uring 在 WSL 上运行缓慢
+
+没有复现它的 README 的基准测试结果。
+
+## Problem 4：tokio-uring 存在 bug
+
+tokio-rs/tokio-uring#issue328：
+
+[SIGABRT with "corrupted double-linked list" on multi-thread runtime](https://github.com/tokio-rs/tokio-uring/issues/328)
+
+``` rust
+Avg: 59384 (593841 / 10s) 👈 all tasks finishes, but I got reports below
+corrupted double-linked list
+fish: Job 1, 'cargo run --example server_toki…' terminated by signal SIGABRT (Abort)
+```
+
+## 本周工作：自己编写基准测试代码
+
+``` bash
+ bench-uring
+  examples
+  │ 󱘗 client_tokio_mt.rs
+  │ 󱘗 client_tokio_st.rs
+  │ 󱘗 server_monoio_mt.rs
+  │ 󱘗 server_monoio_st.rs
+  │ 󱘗 server_tokio_mt.rs
+  │ 󱘗 server_tokio_st.rs
+  │ 󱘗 server_tokio_uring_mt.rs
+  └ 󱘗 server_tokio_uring_st.rs
+```
+
+<https://github.com/os-checker/bench-uring>
+
+------------------------------------------------------------------------
+
+-   client: 使用 tokio
+    -   mt = 8 线程
+    -   st = 1 线程
+-   server
+    -   monoio
+    -   tokio_uring
+    -   tokio
+    -   剔除 async-uring
+
+服务端也区分多线程和单线程。
+
+P.S. monoio 尚未绑定到单核。
+
+## Benchmarks
+
+```{r p1, dev = "svg"}
+filtered_data <- data %>%
+  filter(socket_len == 100)
+
+# 去除 server 列中的 "server_" 前缀
+filtered_data$server <- sub("^server_", "", filtered_data$server)
+filtered_data$client <- sub("^client_", "", filtered_data$client)
+# 修改标签格式
+filtered_data$server <- sub("_st$", "\n(1 thread)", filtered_data$server)
+filtered_data$server <- sub("_mt$", "\n(8 threads)", filtered_data$server)
+filtered_data$client <- sub("_st$", " (1 thread)", filtered_data$client)
+filtered_data$client <- sub("_mt$", " (8 threads)", filtered_data$client)
+
+filtered_data <- filtered_data %>%
+  group_by(server, client) %>%
+  summarise(mbps = mean(mbps, na.rm = TRUE), .groups = 'drop')
+
+# 按 mbps 降序排列
+filtered_data <- filtered_data %>%
+  arrange(desc(mbps))
+
+ggplot(filtered_data, aes(
+  x = reorder(server, -mbps),
+  y = mbps,
+  fill = client
+)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "MBps by Server with 100 sockets in a Client",
+       x = "Server",
+       y = "MBps",
+       fill = "Client") +
+  geom_text(
+    aes(label = round(mbps, 0), color = client, fontface = "bold"),
+    position = position_dodge(width = 0.9),
+    vjust = -0.4,
+    size = 2.8,
+    show.legend = FALSE
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 0),
+    # 如果标签过长，可以旋转标签
+    legend.direction = "horizontal",
+    legend.position = "inside",
+    # 将图例放入绘图区
+    legend.position.inside = c(0.7, 0.88),
+    legend.background = element_rect(fill = "white", color = NA),
+  ) +
+  scale_y_continuous(expand = c(0.08, 0))  # 扩展 y 轴范围，为标签提供更多空间
+```
+
+## Code LOC
+
+```bash
+bench-uring $ tokei
+===============================================================================
+ Language            Files        Lines         Code     Comments       Blanks
+===============================================================================
+ TOML                    1           25           18            3            4
+-------------------------------------------------------------------------------
+ Rust                   20          735          617           15          103
+ |- Markdown             3           21            0           21            0
+ (Total)                            756          617           36          103
+===============================================================================
+ Total                  21          760          635           18          107
+===============================================================================
+```
+
+## Data
+
+```{r}
+data
+```
+
