@@ -13,12 +13,14 @@ jobs:
       contents: write  # To push a branch 
       pull-requests: write  # To create a PR from that branch
     steps:
+    - uses: actions/checkout@v4
     - name: Upload pages artifacts
       uses: actions/upload-pages-artifact@v3
       with:
         path: slides
 
   deploy:
+    needs: upload
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write      # to deploy to Pages
