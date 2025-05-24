@@ -1,0 +1,58 @@
+use super::utils::*;
+
+use async_uring::{net::tcp::TcpStream, rt::UringRuntime, tokio::TokioAsyncFd};
+use tokio::{io::AsyncReadExt, net::TcpListener, task::coop::unconstrained};
+
+pub async fn main() -> crate::Result {
+    let addr = &*CONFIG.addr;
+
+    let (rt, fut) = UringRuntime::builder::<TokioAsyncFd>().build()?;
+    tokio::spawn(unconstrained(fut));
+
+    let listener = TcpListener::bind(addr).await?;
+    debug!(addr, "Listening on");
+
+    let (sender, mut receiver) = channel::<Message>(1024);
+    let mut task_stat = Some(stat(sender));
+
+    loop {
+        tokio::select! {
+            request = listener.accept() => {
+                let (socket, socket_addr) = request.unwrap();
+                if let Some(stat) = task_stat.take() {
+                    tokio::spawn(stat);
+                }
+                let socket = rt.register_tcp(socket.into_std()?).await?;
+                tokio::spawn(respond(socket, socket_addr));
+            }
+            recv = receiver.recv() => {
+                if recv.is_none() { return Ok(()); }
+            }
+        }
+    }
+}
+
+async fn respond(mut socket: TcpStream, socket_addr: SocketAddr) {
+    let span = error_span!("respond", %socket_addr);
+    async move {
+        let mut buf = vec![0; CONFIG.size];
+
+        loop {
+            let n = match socket.read(&mut buf).await {
+                Ok(n) => n,
+                Err(err) => {
+                    error!(?err, "Failed to read socket.");
+                    break;
+                }
+            };
+
+            COUNT.fetch_add(1, Ordering::Relaxed);
+            if n == 0 {
+                debug!("Close client");
+                return;
+            }
+        }
+    }
+    .instrument(span)
+    .await
+}
