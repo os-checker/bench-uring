@@ -28,7 +28,7 @@ theme_set(
 
 ```{r}
 # Prepare
-data <- read.csv("2025-05-17.csv")
+data <- read.csv("2025-05-24.csv")
 data$server_st <- data$server_st == "true"
 data$client_st <- data$client_st == "true"
 ```
@@ -102,7 +102,7 @@ P.S. monoio 尚未绑定到单核。
 
 ```{r p1, dev = "svg"}
 filtered_data <- data %>%
-  filter(socket_len == 100)
+  filter(socket_len == 100, duration == 4)
 
 # 去除 server 列中的 "server_" 前缀
 filtered_data$server <- sub("^server_", "", filtered_data$server)
