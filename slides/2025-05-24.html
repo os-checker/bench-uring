@@ -185,16 +185,6 @@
       margin-right: 0; 
     }
   </style>
-  <link href="2025-05-24_files/libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet">
-  <script src="2025-05-24_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
-  <link href="2025-05-24_files/libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
-  <script src="2025-05-24_files/libs/datatables-binding-0.33/datatables.js"></script>
-  <script src="2025-05-24_files/libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
-  <link href="2025-05-24_files/libs/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
-  <link href="2025-05-24_files/libs/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
-  <script src="2025-05-24_files/libs/dt-core-1.13.6/js/jquery.dataTables.min.js"></script>
-  <link href="2025-05-24_files/libs/crosstalk-1.2.1/css/crosstalk.min.css" rel="stylesheet">
-  <script src="2025-05-24_files/libs/crosstalk-1.2.1/js/crosstalk.min.js"></script>
 </head>
 <body class="quarto-light">
   <div class="reveal">
@@ -207,93 +197,51 @@
 </div>
 
 </section>
-<section id="problem-1-async-uring-基准测试代码不完整" class="slide level2">
-<h2>Problem 1: async-uring 基准测试代码不完整</h2>
-<p>r58Playz/async-uring#1：</p>
-<p><a href="https://github.com/r58Playz/async-uring/issues/1">The bench.sh is incomplete on other runtimes</a></p>
+<section id="system-information" class="slide level2">
+<h2>System Information</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href=""></a><span class="ex">System</span> Version: Ubuntu 24.04.1 LTS</span>
+<span id="cb1-2"><a href=""></a></span>
+<span id="cb1-3"><a href=""></a><span class="ex">Kernel</span> Version: 6.8.0-1029-aws</span>
+<span id="cb1-4"><a href=""></a></span>
+<span id="cb1-5"><a href=""></a><span class="ex">Architecture:</span>             aarch64</span>
+<span id="cb1-6"><a href=""></a>  <span class="ex">CPU</span> op-mode<span class="er">(</span><span class="ex">s</span><span class="kw">)</span><span class="bu">:</span>         32-bit, 64-bit</span>
+<span id="cb1-7"><a href=""></a><span class="ex">CPU</span><span class="er">(</span><span class="ex">s</span><span class="kw">)</span><span class="bu">:</span>                   32</span>
+<span id="cb1-8"><a href=""></a><span class="ex">Vendor</span> ID:                ARM</span>
+<span id="cb1-9"><a href=""></a>  <span class="ex">Model</span> name:             Neoverse-N1</span>
+<span id="cb1-10"><a href=""></a>    <span class="ex">Thread</span><span class="er">(</span><span class="ex">s</span><span class="kw">)</span> <span class="ex">per</span> core:   1</span>
+<span id="cb1-11"><a href=""></a>    <span class="ex">Core</span><span class="er">(</span><span class="ex">s</span><span class="kw">)</span> <span class="ex">per</span> socket:   32</span>
+<span id="cb1-12"><a href=""></a>    <span class="ex">Socket</span><span class="er">(</span><span class="ex">s</span><span class="kw">)</span><span class="bu">:</span>            1</span>
+<span id="cb1-13"><a href=""></a><span class="ex">Caches</span> <span class="er">(</span><span class="fu">sum</span> of all<span class="kw">)</span><span class="bu">:</span></span>
+<span id="cb1-14"><a href=""></a>  <span class="ex">L1d:</span>                    2 MiB <span class="er">(</span><span class="ex">32</span> instances<span class="kw">)</span></span>
+<span id="cb1-15"><a href=""></a>  <span class="ex">L1i:</span>                    2 MiB <span class="er">(</span><span class="ex">32</span> instances<span class="kw">)</span></span>
+<span id="cb1-16"><a href=""></a>  <span class="ex">L2:</span>                     32 MiB <span class="er">(</span><span class="ex">32</span> instances<span class="kw">)</span></span>
+<span id="cb1-17"><a href=""></a>  <span class="ex">L3:</span>                     32 MiB <span class="er">(</span><span class="ex">1</span> instance<span class="kw">)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="problem-2-async-uring-在-wsl-上编译错误" class="slide level2">
-<h2>Problem 2: async-uring 在 WSL 上编译错误</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href=""></a><span class="ex">$</span> bash bench.sh echo 127.0.0.1:2345</span>
-<span id="cb1-2"><a href=""></a>    <span class="ex">Finished</span> <span class="kw">`</span><span class="ex">release</span><span class="kw">`</span> profile [optimized + debuginfo] target<span class="er">(</span><span class="ex">s</span><span class="kw">)</span> <span class="er">in</span> <span class="ex">0.23s</span></span>
-<span id="cb1-3"><a href=""></a>     <span class="ex">Running</span> <span class="kw">`</span><span class="ex">target/release/examples/echo</span> <span class="st">'127.0.0.1:2345'</span><span class="kw">`</span></span>
-<span id="cb1-4"><a href=""></a><span class="ex">Error:</span> Io<span class="er">(</span><span class="ex">Os</span> { code: 22, kind: InvalidInput, message: <span class="st">"Invalid argument"</span> }<span class="kw">)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>通过运行 <code>uname -a</code> 命令，我发现 Windows WSL2 的 ubuntu 24 的内核版本为 5.15，不支持 5.18 之后的 <a href="https://docs.rs/io-uring/0.7.6/io_uring/struct.Builder.html#method.setup_submit_all"><code>setup_submit_all</code></a> 调用。</p>
-</section>
-<section id="problem-3-async-uring-在-wsl-上运行缓慢" class="slide level2">
-<h2>Problem 3: async-uring 在 WSL 上运行缓慢</h2>
-<p>没有复现它的 README 的基准测试结果。</p>
-</section>
-<section id="problem-4tokio-uring-存在-bug" class="slide level2">
-<h2>Problem 4：tokio-uring 存在 bug</h2>
-<p>tokio-rs/tokio-uring#issue328：</p>
-<p><a href="https://github.com/tokio-rs/tokio-uring/issues/328">SIGABRT with “corrupted double-linked list” on multi-thread runtime</a></p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource rust number-lines code-with-copy"><code class="sourceCode rust"><span id="cb2-1"><a href=""></a>Avg<span class="op">:</span> <span class="dv">59384</span> (<span class="dv">593841</span> <span class="op">/</span> 10s) 👈 all tasks finishes<span class="op">,</span> but I got reports below</span>
-<span id="cb2-2"><a href=""></a>corrupted double<span class="op">-</span>linked list</span>
-<span id="cb2-3"><a href=""></a>fish<span class="op">:</span> Job <span class="dv">1</span><span class="op">,</span> <span class="ot">'cargo</span> run <span class="op">--</span>example server_toki…<span class="ch">'</span> terminated by signal SIGABRT (Abort)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="本周工作自己编写基准测试代码" class="slide level2">
-<h2>本周工作：自己编写基准测试代码</h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href=""></a><span class="ex"></span> bench-uring</span>
-<span id="cb3-2"><a href=""></a><span class="ex"></span>  examples</span>
-<span id="cb3-3"><a href=""></a>  <span class="ex">│</span> 󱘗 client_tokio_mt.rs</span>
-<span id="cb3-4"><a href=""></a>  <span class="ex">│</span> 󱘗 client_tokio_st.rs</span>
-<span id="cb3-5"><a href=""></a>  <span class="ex">│</span> 󱘗 server_monoio_mt.rs</span>
-<span id="cb3-6"><a href=""></a>  <span class="ex">│</span> 󱘗 server_monoio_st.rs</span>
-<span id="cb3-7"><a href=""></a>  <span class="ex">│</span> 󱘗 server_tokio_mt.rs</span>
-<span id="cb3-8"><a href=""></a>  <span class="ex">│</span> 󱘗 server_tokio_st.rs</span>
-<span id="cb3-9"><a href=""></a>  <span class="ex">│</span> 󱘗 server_tokio_uring_mt.rs</span>
-<span id="cb3-10"><a href=""></a>  <span class="ex">└</span> 󱘗 server_tokio_uring_st.rs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p><a href="https://github.com/os-checker/bench-uring" class="uri">https://github.com/os-checker/bench-uring</a></p>
-</section>
-<section class="slide level2">
+<section id="duration-doesnt-matter" class="slide level2">
+<h2>Duration doesn’t matter</h2>
 
-<ul>
-<li>client: 使用 tokio
-<ul>
-<li>mt = 8 线程</li>
-<li>st = 1 线程</li>
-</ul></li>
-<li>server
-<ul>
-<li>monoio</li>
-<li>tokio_uring</li>
-<li>tokio</li>
-<li>剔除 async-uring</li>
-</ul></li>
-</ul>
-<p>服务端也区分多线程和单线程。</p>
-<p>P.S. monoio 尚未绑定到单核。</p>
-</section>
-<section id="benchmarks" class="slide level2">
-<h2>Benchmarks</h2>
+<img data-src="2025-05-24_files/figure-revealjs/duration-comparison-1.svg" width="960" class="r-stretch"></section>
+<section id="amount-of-client-sockets-neither" class="slide level2">
+<h2>Amount of client sockets neither</h2>
 
-<img data-src="2025-05-24_files/figure-revealjs/p1-1.svg" width="960" class="r-stretch"></section>
-<section id="code-loc" class="slide level2">
-<h2>Code LOC</h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href=""></a><span class="ex">bench-uring</span> $ tokei</span>
-<span id="cb4-2"><a href=""></a><span class="ex">===============================================================================</span></span>
-<span id="cb4-3"><a href=""></a> <span class="ex">Language</span>            Files        Lines         Code     Comments       Blanks</span>
-<span id="cb4-4"><a href=""></a><span class="ex">===============================================================================</span></span>
-<span id="cb4-5"><a href=""></a> <span class="ex">TOML</span>                    1           25           18            3            4</span>
-<span id="cb4-6"><a href=""></a><span class="ex">-------------------------------------------------------------------------------</span></span>
-<span id="cb4-7"><a href=""></a> <span class="ex">Rust</span>                   20          735          617           15          103</span>
-<span id="cb4-8"><a href=""></a> <span class="kw">|</span><span class="ex">-</span> Markdown             3           21            0           21            0</span>
-<span id="cb4-9"><a href=""></a> <span class="kw">(</span><span class="ex">Total</span><span class="kw">)</span>                            <span class="ex">756</span>          617           36          103</span>
-<span id="cb4-10"><a href=""></a><span class="ex">===============================================================================</span></span>
-<span id="cb4-11"><a href=""></a> <span class="ex">Total</span>                  21          760          635           18          107</span>
-<span id="cb4-12"><a href=""></a><span class="ex">===============================================================================</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="data" class="slide level2">
-<h2>Data</h2>
-<div class="cell">
-<div class="cell-output-display">
-<div class="datatables html-widget html-fill-item" id="htmlwidget-17cdc693e8a35e2b891f" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-17cdc693e8a35e2b891f">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64"],[221810,133725,88197,55233,54334,39957,30862,30576,30407,26772,26443,26260,19655,19391,19296,19009,18262,12809,12369,12261,8306,5602,5562,5351,5126,4324,4266,4256,3565,3560,3531,3526,3494,3458,3452,3424,3334,3287,3285,3285,3214,3194,3067,3029,3028,3008,2993,2918,2884,2671,2639,2560,2255,2228,2225,2194,2151,2120,1712,1688,1660,1650,1617,1611],[221810,133725,88197,55233,54334,39957,30862,30576,30407,1713415,1692370,1680681,19655,19391,1234979,1216596,1168786,819803,791646,784720,8306,5602,5562,5351,5126,276764,273030,272427,228188,227843,226002,225673,223627,221313,220936,219156,213421,210384,210260,210250,205736,204427,196304,193897,193833,192536,191612,186803,184625,170952,168938,163857,144336,142632,142436,140454,137700,135706,109614,108036,106286,105644,103524,103113],[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],["server_monoio_mt","server_tokio_mt","server_tokio_uring_mt","server_monoio_st","server_monoio_mt","server_tokio_st","server_tokio_mt","server_async_uring_tokio_mt","server_async_uring_tokio_st","server_tokio_mt","server_tokio_mt","server_tokio_mt","server_tokio_uring_st","server_tokio_uring_mt","server_monoio_mt","server_monoio_mt","server_monoio_mt","server_tokio_uring_mt","server_tokio_uring_mt","server_tokio_uring_mt","server_tokio_st","server_monoio_st","server_tokio_uring_st","server_async_uring_tokio_st","server_async_uring_tokio_mt","server_tokio_st","server_tokio_st","server_tokio_st","server_tokio_uring_mt","server_tokio_uring_mt","server_tokio_mt","server_tokio_uring_mt","server_monoio_mt","server_monoio_mt","server_async_uring_tokio_mt","server_monoio_mt","server_tokio_mt","server_async_uring_tokio_mt","server_tokio_st","server_tokio_mt","server_tokio_st","server_tokio_st","server_async_uring_tokio_st","server_async_uring_tokio_mt","server_async_uring_tokio_st","server_async_uring_tokio_st","server_async_uring_tokio_st","server_async_uring_tokio_mt","server_async_uring_tokio_mt","server_async_uring_tokio_st","server_async_uring_tokio_st","server_async_uring_tokio_mt","server_monoio_st","server_monoio_st","server_monoio_st","server_monoio_st","server_monoio_st","server_monoio_st","server_tokio_uring_st","server_tokio_uring_st","server_tokio_uring_st","server_tokio_uring_st","server_tokio_uring_st","server_tokio_uring_st"],["client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_st","client_tokio_st","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_st","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_mt","client_tokio_st","client_tokio_mt","client_tokio_st","client_tokio_mt","client_tokio_st","client_tokio_mt","client_tokio_mt","client_tokio_st","client_tokio_mt","client_tokio_mt","client_tokio_st","client_tokio_st","client_tokio_mt","client_tokio_st"],[false,false,false,true,false,true,false,false,true,false,false,false,true,false,false,false,false,false,false,false,true,true,true,true,false,true,true,true,false,false,false,false,false,false,false,false,false,false,true,false,true,true,true,false,true,true,true,false,false,true,true,false,true,true,true,true,true,true,true,true,true,true,true,true],[false,false,false,true,true,true,true,true,true,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,false,false,true,false,true,false,true,false,false,true,false,false,true,true,false,true],[1048576,1048576,1048576,1048576,1048576,1048576,1048576,1048576,1048576,16384,16384,16384,1048576,1048576,16384,16384,16384,16384,16384,16384,1048576,1048576,1048576,1048576,1048576,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384,16384],[100,100,100,100,100,100,100,100,100,100,200,100,100,100,100,100,200,200,100,100,100,100,100,100,100,200,100,100,100,200,100,100,100,200,100,100,100,100,200,200,100,100,100,200,100,100,100,100,100,200,200,200,100,100,100,100,200,200,100,100,100,100,200,200],[4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>mbps<\/th>\n      <th>conn<\/th>\n      <th>secs<\/th>\n      <th>server<\/th>\n      <th>client<\/th>\n      <th>server_st<\/th>\n      <th>client_st<\/th>\n      <th>size<\/th>\n      <th>socket_len<\/th>\n      <th>duration<\/th>\n      <th>interval<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,8,9,10,11]},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"mbps","targets":1},{"name":"conn","targets":2},{"name":"secs","targets":3},{"name":"server","targets":4},{"name":"client","targets":5},{"name":"server_st","targets":6},{"name":"client_st","targets":7},{"name":"size","targets":8},{"name":"socket_len","targets":9},{"name":"duration","targets":10},{"name":"interval","targets":11}],"order":[],"autoWidth":false,"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
-</div>
-</div>
+<img data-src="2025-05-24_files/figure-revealjs/socket_len-comparison-1.svg" width="960" class="r-stretch"></section>
+<section id="size-of-transmitted-data-matters" class="slide level2">
+<h2>Size of transmitted data matters</h2>
 
-</section>
+<img data-src="2025-05-24_files/figure-revealjs/size-comparison-1.svg" width="960" class="r-stretch"></section>
+<section id="thread-matters---server-size-16-kb" class="slide level2">
+<h2>Thread matters - Server (Size: 16 KB)</h2>
+
+<img data-src="2025-05-24_files/figure-revealjs/server-16KB-thread-comparison-1.svg" width="960" class="r-stretch"></section>
+<section id="thread-matters---server-size-1-mb" class="slide level2">
+<h2>Thread matters - Server (Size: 1 MB)</h2>
+
+<img data-src="2025-05-24_files/figure-revealjs/server-1MB-thread-comparison-1.svg" width="960" class="r-stretch"></section>
+<section id="thread-matters---client" class="slide level2">
+<h2>Thread matters - Client</h2>
+
+
+<img data-src="2025-05-24_files/figure-revealjs/client-thread-comparison-1.svg" width="960" class="r-stretch"></section>
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
 <div class="footer footer-default">
